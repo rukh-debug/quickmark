@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180" />
+    <link rel="mask-icon" href="/masked-icon.svg" color="#1976d2" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="A powerful and simple quickmark manager that works entirely in your browser. No accounts, no cloud, just your quickmarks." />
+    <meta name="keywords" content="quickmark, manager, minimalist, local, privacy" />
+    <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#282828" media="(prefers-color-scheme: dark)" />
+    <title>QuickMark</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <!-- Inline data container for saved HTML files - stores quickmarks as JSON -->
+    <script id="quickmark-inline-data" type="application/json">[]</script>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/sw.js', { scope: '/' }).then((registration) => {
+            console.log('SW registered: ', registration);
+          }).catch((registrationError) => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+    </script>
+  </body>
+</html>

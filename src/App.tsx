@@ -102,7 +102,7 @@ function App() {
     setImportExportOpen(true);
   };
 
-  const handleImport = (data: string): boolean => {
+  const handleImport = (data: string): { success: boolean; added: number; skipped: number } => {
     return importQuickMarks(data);
   };
 

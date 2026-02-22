@@ -18,7 +18,7 @@ interface ImportExportDialogProps {
   onClose: () => void;
   mode: 'import' | 'export';
   data?: string;
-  onImport?: (data: string) => boolean;
+  onImport?: (data: string) => { success: boolean; added: number; skipped: number } | boolean;
 }
 
 
@@ -50,13 +50,35 @@ export default function ImportExportDialog({
 
     if (onImport) {
       const result = onImport(importData);
-      if (result) {
-        setSuccess('QuickMarks imported successfully!');
-        setTimeout(() => {
-          handleClose();
-        }, 1500);
+      
+      // Handle both old boolean return and new object return
+      if (typeof result === 'boolean') {
+        if (result) {
+          setSuccess('QuickMarks imported successfully!');
+          setTimeout(() => {
+            handleClose();
+          }, 1500);
+        } else {
+          setError('Failed to import quickmarks. Please check the data format.');
+        }
       } else {
-        setError('Failed to import quickmarks. Please check the data format.');
+        if (result.success) {
+          const { added, skipped } = result;
+          if (added > 0 && skipped > 0) {
+            setSuccess(`Imported ${added} new QuickMark(s), skipped ${skipped} duplicate(s).`);
+          } else if (added > 0) {
+            setSuccess(`Successfully imported ${added} new QuickMark(s)!`);
+          } else if (skipped > 0) {
+            setSuccess(`All ${skipped} QuickMark(s) already exist.`);
+          } else {
+            setSuccess('No QuickMarks to import.');
+          }
+          setTimeout(() => {
+            handleClose();
+          }, 2000);
+        } else {
+          setError('Failed to import quickmarks. Please check the data format.');
+        }
       }
     }
   };
@@ -129,7 +151,7 @@ export default function ImportExportDialog({
       </DialogTitle>
       <DialogContent>
         <Typography variant="body2" color="text.secondary" gutterBottom>
-          Paste your previously exported quickmark data below. This will replace all current quickmarks.
+          Paste your previously exported quickmark data below. New quickmarks will be merged with your existing ones. Duplicate URLs will be skipped.
         </Typography>
         <TextField
           fullWidth

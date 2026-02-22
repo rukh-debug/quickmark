@@ -141,25 +141,51 @@ export function useQuickMarks() {
     return jsonData + instructions;
   }, [quickMarks]);
 
-  const importQuickMarks = useCallback((json: string) => {
+  const importQuickMarks = useCallback((json: string): { success: boolean; added: number; skipped: number } => {
     try {
       // Extract array content from the text (ignore anything outside [...])
       const arrayMatch = json.match(/\[[\s\S]*\]/);
       if (!arrayMatch) {
-        return false;
+        return { success: false, added: 0, skipped: 0 };
       }
       const parsed = JSON.parse(arrayMatch[0]);
       if (Array.isArray(parsed)) {
         // Migrate imported quickmarks to new format
         const migrated = parsed.map(migrateQuickMark);
-        setQuickMarks(migrated);
-        return true;
+        
+        // Get existing URLs for duplicate checking
+        const existingUrls = new Set(quickMarks.map(qm => qm.url.toLowerCase()));
+        
+        // Filter out duplicates and create new quickmarks with fresh IDs
+        const now = Date.now();
+        const newQuickMarks: QuickMark[] = [];
+        let skipped = 0;
+        
+        migrated.forEach((importedQm, index) => {
+          if (existingUrls.has(importedQm.url.toLowerCase())) {
+            skipped++;
+          } else {
+            // Use index in ID to ensure uniqueness even within same millisecond
+            newQuickMarks.push({
+              ...importedQm,
+              id: `qm-${now}-${index}-${Math.random().toString(36).slice(2, 11)}`,
+              createdAt: now,
+              updatedAt: now,
+            });
+            existingUrls.add(importedQm.url.toLowerCase());
+          }
+        });
+        
+        // Merge: keep existing quickmarks and add new ones at the beginning
+        setQuickMarks((prev) => [...newQuickMarks, ...prev]);
+        
+        return { success: true, added: newQuickMarks.length, skipped };
       }
-      return false;
+      return { success: false, added: 0, skipped: 0 };
     } catch {
-      return false;
+      return { success: false, added: 0, skipped: 0 };
     }
-  }, []);
+  }, [quickMarks]);
 
   return {
     quickMarks,

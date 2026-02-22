@@ -42,7 +42,6 @@ export function getInitials(url: string): string {
  */
 export function getFallbackEmoji(url: string, title: string): string {
   const text = (url + title).toLowerCase();
-  if (text.includes('chime')) return '💬';
   if (text.includes('print') || text.includes('barcode')) return '🖨️';
   if (text.includes('graph') || text.includes('monitor') || text.includes('score')) return '📊';
   if (text.includes('schedule') || text.includes('time') || text.includes('roster')) return '📅';
@@ -50,6 +49,6 @@ export function getFallbackEmoji(url: string, title: string): string {
   if (text.includes('local') || text.includes('file')) return '📁';
   if (text.includes('dock') || text.includes('yard')) return '🚚';
   if (text.includes('wiki') || text.includes('quip')) return '📝';
-  if (text.includes('amazon')) return '📦';
+  if (text.includes('amazon') || text.includes('aws')) return '📦';
   return '🔗'; // Default
 }

@@ -25,7 +25,9 @@ import Header from './app/components/Header';
 import QuickMarkCard from './app/components/QuickMarkCard';
 import QuickMarkForm from './app/components/QuickMarkForm';
 import ImportExportDialog from './app/components/ImportExportDialog';
+import SnowEffect from './app/components/effects/SnowEffect';
 import { useQuickMarks } from './app/hooks/useQuickMarks';
+import { useSnow } from './app/hooks/useSnow';
 import { QuickMark, QuickMarkFormData } from './app/types/quickmark';
 
 
@@ -44,6 +46,8 @@ function App() {
     exportQuickMarks,
     importQuickMarks,
   } = useQuickMarks();
+
+  const { isSnowing, toggleSnow } = useSnow();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -130,7 +134,12 @@ function App() {
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}
         searchResultCount={hasFilters ? totalCount : undefined}
+        onLogoHold={toggleSnow}
+        isSnowing={isSnowing}
       />
+
+      {/* Snow Effect Easter Egg */}
+      <SnowEffect enabled={isSnowing} />
 
       <Container maxWidth="xl" sx={{ py: { xs: 2, sm: 3 } }}>
         {/* Pinned Section */}

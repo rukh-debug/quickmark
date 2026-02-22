@@ -49,6 +49,8 @@ interface HeaderProps {
   searchValue: string;
   onSearchChange: (value: string) => void;
   searchResultCount?: number;
+  onLogoHold?: () => void;
+  isSnowing?: boolean;
 }
 
 // Modern minimalist date-time component
@@ -180,6 +182,8 @@ function DateTimeDisplay() {
 
 const DELETE_ALL_HOLD_DURATION = 3000; // 3 seconds to delete all
 
+const EASTER_EGG_HOLD_DURATION = 800; // 0.8 seconds to trigger easter egg
+
 export default function Header({ 
   onAddClick, 
   onExportClick, 
@@ -189,6 +193,8 @@ export default function Header({
   searchValue,
   onSearchChange,
   searchResultCount,
+  onLogoHold,
+  isSnowing = false,
 }: HeaderProps) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -214,6 +220,15 @@ export default function Header({
   const deleteAllPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deleteAllProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deleteAllPressStartTimeRef = useRef<number>(0);
+
+  // Easter egg (logo hold) state
+  const [isPressingLogo, setIsPressingLogo] = useState(false);
+  const [logoPressProgress, setLogoPressProgress] = useState(0);
+  const [showEasterEggHint, setShowEasterEggHint] = useState(false);
+  const logoPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const logoProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const logoPressStartTimeRef = useRef<number>(0);
+  const logoHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keyboard shortcut: Cmd/Ctrl + K or Ctrl + F to focus search
   useEffect(() => {
@@ -339,6 +354,61 @@ export default function Header({
     setDeleteAllProgress(0);
   }, []);
 
+  // Easter egg (logo hold) handlers
+  const startLogoPress = useCallback((event: React.MouseEvent | React.TouchEvent) => {
+    event.preventDefault();
+    
+    setIsPressingLogo(true);
+    logoPressStartTimeRef.current = Date.now();
+    setLogoPressProgress(0);
+
+    // Show hint after short delay
+    logoHintTimeoutRef.current = setTimeout(() => {
+      setShowEasterEggHint(true);
+    }, 300);
+
+    // Start progress animation
+    const updateInterval = 16; // ~60fps
+    logoProgressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - logoPressStartTimeRef.current;
+      const newProgress = Math.min((elapsed / EASTER_EGG_HOLD_DURATION) * 100, 100);
+      setLogoPressProgress(newProgress);
+    }, updateInterval);
+
+    // Set timer for easter egg trigger
+    logoPressTimerRef.current = setTimeout(() => {
+      if (logoProgressIntervalRef.current) {
+        clearInterval(logoProgressIntervalRef.current);
+      }
+      onLogoHold?.();
+      setIsPressingLogo(false);
+      setLogoPressProgress(0);
+      setShowEasterEggHint(false);
+    }, EASTER_EGG_HOLD_DURATION);
+  }, [onLogoHold]);
+
+  const cancelLogoPress = useCallback((event?: React.MouseEvent | React.TouchEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+    
+    if (logoPressTimerRef.current) {
+      clearTimeout(logoPressTimerRef.current);
+      logoPressTimerRef.current = null;
+    }
+    if (logoProgressIntervalRef.current) {
+      clearInterval(logoProgressIntervalRef.current);
+      logoProgressIntervalRef.current = null;
+    }
+    if (logoHintTimeoutRef.current) {
+      clearTimeout(logoHintTimeoutRef.current);
+      logoHintTimeoutRef.current = null;
+    }
+    setIsPressingLogo(false);
+    setLogoPressProgress(0);
+    setShowEasterEggHint(false);
+  }, []);
+
   return (
     <AppBar
       position="sticky"
@@ -367,32 +437,96 @@ export default function Header({
             flexShrink: 0,
           }}
         >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: { xs: 36, sm: 42 },
-              height: { xs: 36, sm: 42 },
-              borderRadius: 2.5,
-              background: isDark
-                ? 'linear-gradient(135deg, #83a598 0%, #458588 100%)'
-                : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-              color: '#fff',
-              boxShadow: isDark
-                ? '0 4px 16px rgba(131, 165, 152, 0.35)'
-                : '0 4px 16px rgba(37, 99, 235, 0.35)',
-              transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-              '&:hover': {
-                transform: 'scale(1.08) rotate(-4deg)',
-                boxShadow: isDark
-                  ? '0 6px 24px rgba(131, 165, 152, 0.5)'
-                  : '0 6px 24px rgba(37, 99, 235, 0.5)',
-              },
-            }}
+          <Tooltip 
+            title={isSnowing ? "❄️ Snow is falling! Hold to stop" : "Hold for a surprise..."} 
+            arrow
+            open={showEasterEggHint}
           >
-            <QuickMarkIcon sx={{ fontSize: { xs: 18, sm: 22 } }} />
-          </Box>
+            <Box
+              onMouseDown={startLogoPress}
+              onMouseUp={cancelLogoPress}
+              onMouseLeave={cancelLogoPress}
+              onTouchStart={startLogoPress}
+              onTouchEnd={cancelLogoPress}
+              sx={{
+                position: 'relative',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: { xs: 36, sm: 42 },
+                height: { xs: 36, sm: 42 },
+                borderRadius: 2.5,
+                overflow: 'hidden',
+                boxShadow: isDark
+                  ? '0 4px 16px rgba(0, 0, 0, 0.3)'
+                  : '0 4px 16px rgba(0, 0, 0, 0.15)',
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                cursor: 'pointer',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                '&:hover': {
+                  transform: isPressingLogo ? 'scale(0.95)' : 'scale(1.08) rotate(-4deg)',
+                  boxShadow: isDark
+                    ? '0 6px 24px rgba(0, 0, 0, 0.4)'
+                    : '0 6px 24px rgba(0, 0, 0, 0.2)',
+                },
+                '&:active': {
+                  transform: 'scale(0.95)',
+                },
+              }}
+            >
+              {/* Progress ring for easter egg */}
+              {isPressingLogo && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: -2,
+                    borderRadius: '50%',
+                    background: `conic-gradient(
+                      ${isDark ? '#83a598' : '#2563eb'} ${logoPressProgress * 3.6}deg,
+                      transparent ${logoPressProgress * 3.6}deg
+                    )`,
+                    opacity: 0.6,
+                    animation: isPressingLogo ? 'spin 1s linear infinite' : 'none',
+                    '@keyframes spin': {
+                      from: { transform: 'rotate(0deg)' },
+                      to: { transform: 'rotate(360deg)' },
+                    },
+                  }}
+                />
+              )}
+              {/* Active state indicator */}
+              {isSnowing && !isPressingLogo && (
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    inset: -2,
+                    borderRadius: '50%',
+                    border: '2px solid',
+                    borderColor: isDark ? '#83a598' : '#2563eb',
+                    opacity: 0.5,
+                    animation: 'pulse 2s ease-in-out infinite',
+                    '@keyframes pulse': {
+                      '0%, 100%': { transform: 'scale(1)', opacity: 0.5 },
+                      '50%': { transform: 'scale(1.1)', opacity: 0.3 },
+                    },
+                  }}
+                />
+              )}
+              <Box
+                component="img"
+                src="/icon.svg"
+                alt="QuickMark"
+                sx={{
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
+                  position: 'relative',
+                  zIndex: 1,
+                }}
+              />
+            </Box>
+          </Tooltip>
           <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
             <Typography
               variant="h6"

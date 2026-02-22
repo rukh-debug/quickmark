@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -25,7 +25,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { QuickMark } from '../types/quickmark';
-import { getFaviconUrl, getDomain, getFallbackEmoji } from '../utils/favicon';
+import { getFaviconUrls, getDomain, getFallbackEmoji, preloadImage, isDefaultFavicon } from '../utils/favicon';
 import { quickMarkColors } from '../theme/gruvbox';
 
 interface QuickMarkCardProps {
@@ -40,6 +40,35 @@ const HOLD_DURATION = 1000; // 1 second hold to delete
 export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin }: QuickMarkCardProps) {
   const [faviconError, setFaviconError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+
+  // Try multiple favicon sources when URL changes
+  useEffect(() => {
+    setFaviconError(false);
+    setImageLoaded(false);
+    setFaviconUrl(null);
+
+    const tryFaviconSources = async () => {
+      const sources = getFaviconUrls(quickMark.url);
+      
+      for (const source of sources) {
+        const img = await preloadImage(source.url);
+        if (img) {
+          // Skip Google's default globe icon
+          if (isDefaultFavicon(img)) {
+            continue;
+          }
+          setFaviconUrl(source.url);
+          return;
+        }
+      }
+      
+      // If no working favicon found, mark as error
+      setFaviconError(true);
+    };
+
+    tryFaviconSources();
+  }, [quickMark.url]);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPressing, setIsPressing] = useState(false);
@@ -137,7 +166,6 @@ export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin
   };
 
   const domain = getDomain(quickMark.url);
-  const faviconUrl = getFaviconUrl(quickMark.url);
   const showFavicon = faviconUrl && !faviconError;
 
   return (
@@ -235,7 +263,7 @@ export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin
               <>
                 <Box
                   component="img"
-                  src={faviconUrl}
+                  src={faviconUrl || ''}
                   alt={quickMark.title}
                   onError={() => setFaviconError(true)}
                   onLoad={() => setImageLoaded(true)}

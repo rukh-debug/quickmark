@@ -24,7 +24,7 @@ import {
 } from '@mui/icons-material';
 import { QuickMark, QuickMarkFormData } from '../types/quickmark';
 import { quickMarkColors } from '../theme/gruvbox';
-import { getFaviconUrl } from '../utils/favicon';
+import { getFaviconUrls } from '../utils/favicon';
 
 interface QuickMarkFormProps {
   open: boolean;
@@ -64,7 +64,9 @@ export default function QuickMarkForm({
         normalizedUrl = `https://${normalizedUrl}`;
       }
       new URL(normalizedUrl);
-      setFaviconPreview(getFaviconUrl(normalizedUrl));
+      const sources = getFaviconUrls(normalizedUrl);
+      // Use the highest priority source for preview
+      setFaviconPreview(sources.length > 0 ? sources[0].url : '');
     } catch {
       setFaviconPreview('');
     }

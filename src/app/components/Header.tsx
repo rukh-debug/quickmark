@@ -37,8 +37,12 @@ import {
   Close as CloseIcon,
   DeleteForever as DeleteAllIcon,
   Warning as WarningIcon,
+  Settings as SettingsIcon,
 } from '@mui/icons-material';
 import { useRef, useEffect, useState, useCallback } from 'react';
+import SettingsDialog from './SettingsDialog';
+import { useFaviconSettings } from '../hooks/useFaviconSettings';
+import { useDateTimeSettings } from '../hooks/useDateTimeSettings';
 
 interface HeaderProps {
   onAddClick: () => void;
@@ -53,8 +57,13 @@ interface HeaderProps {
   isSnowing?: boolean;
 }
 
+interface DateTimeDisplayProps {
+  showDate: boolean;
+  showTime: boolean;
+}
+
 // Modern minimalist date-time component
-function DateTimeDisplay() {
+function DateTimeDisplay({ showDate, showTime }: DateTimeDisplayProps) {
   const [now, setNow] = useState<Date | null>(null);
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -66,6 +75,9 @@ function DateTimeDisplay() {
   }, []);
 
   if (!now) return null;
+
+  // If both date and time are disabled, don't render anything
+  if (!showDate && !showTime) return null;
 
   const rawHours = now.getHours();
   const hours = (rawHours % 12 || 12).toString().padStart(2, '0');
@@ -84,7 +96,7 @@ function DateTimeDisplay() {
         alignItems: 'center',
         justifyContent: 'center',
         gap: 1.5,
-        minWidth: { xs: 200, sm: 240 },
+        minWidth: { xs: showDate && showTime ? 200 : showTime ? 140 : 120, sm: showDate && showTime ? 240 : showTime ? 160 : 140 },
         height: { xs: 48, sm: 56 },
         px: { xs: 2.5, sm: 3 },
         borderRadius: 3,
@@ -103,79 +115,85 @@ function DateTimeDisplay() {
       }}
     >
       {/* Time - Large and bold */}
-      <Box 
-        sx={{ 
-          display: 'flex', 
-          alignItems: 'baseline', 
-          gap: 0.5, 
-          lineHeight: 1,
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }} 
-      >
-        <Typography
-          sx={{
-            fontSize: { xs: '1.75rem', sm: '2rem' },
-            fontWeight: 700,
-            letterSpacing: '-0.02em',
-            color: 'text.primary',
-            fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
+      {showTime && (
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'baseline', 
+            gap: 0.5, 
             lineHeight: 1,
-          }}
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }} 
         >
-          {hours}:{minutes}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            fontWeight: 600,
-            color: isDark ? 'primary.light' : 'primary.main',
-            fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
-            lineHeight: 1,
-            opacity: 0.9,
-          }}
-        >
-          {seconds}
-        </Typography>
-        <Typography
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-            fontWeight: 600,
-            color: isDark ? 'primary.light' : 'primary.main',
-            fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
-            lineHeight: 1,
-            opacity: 0.7,
-            ml: 0.5,
-          }}
-        >
-          {ampm}
-        </Typography>
-      </Box>
+          <Typography
+            sx={{
+              fontSize: { xs: '1.75rem', sm: '2rem' },
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              color: 'text.primary',
+              fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
+              lineHeight: 1,
+            }}
+          >
+            {hours}:{minutes}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              fontWeight: 600,
+              color: isDark ? 'primary.light' : 'primary.main',
+              fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
+              lineHeight: 1,
+              opacity: 0.9,
+            }}
+          >
+            {seconds}
+          </Typography>
+          <Typography
+            sx={{
+              fontSize: { xs: '0.875rem', sm: '1rem' },
+              fontWeight: 600,
+              color: isDark ? 'primary.light' : 'primary.main',
+              fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
+              lineHeight: 1,
+              opacity: 0.7,
+              ml: 0.5,
+            }}
+          >
+            {ampm}
+          </Typography>
+        </Box>
+      )}
 
-      {/* Divider */}
-      <Box
-        sx={{
-          width: '2px',
-          height: '60%',
-          bgcolor: isDark ? 'rgba(131, 165, 152, 0.3)' : 'rgba(37, 99, 235, 0.2)',
-          borderRadius: 1,
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      />
+      {/* Divider - only show if both date and time are enabled */}
+      {showTime && showDate && (
+        <Box
+          sx={{
+            width: '2px',
+            height: '60%',
+            bgcolor: isDark ? 'rgba(131, 165, 152, 0.3)' : 'rgba(37, 99, 235, 0.2)',
+            borderRadius: 1,
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        />
+      )}
 
       {/* Date - Bold and prominent */}
-      <Typography
-        sx={{
-          fontSize: { xs: '1rem', sm: '1.125rem' },
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          color: 'text.secondary',
-          lineHeight: 1,
-          fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
-          transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-        }}
-      >
-        {dayName} · {dayNum} {month}
-      </Typography>
+      {showDate && (
+        <Typography
+          sx={{
+            fontSize: { xs: '1rem', sm: '1.125rem' },
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: 'text.secondary',
+            lineHeight: 1,
+            fontFamily: '"SF Mono", "Monaco", "Inconsolata", "Fira Code", monospace',
+            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          }}
+        >
+          {dayName} · {dayNum} {month}
+        </Typography>
+      )}
     </Box>
   );
 }
@@ -220,6 +238,11 @@ export default function Header({
   const deleteAllPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const deleteAllProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deleteAllPressStartTimeRef = useRef<number>(0);
+
+  // Settings dialog state
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const faviconSettings = useFaviconSettings();
+  const dateTimeSettings = useDateTimeSettings();
 
   // Easter egg (logo hold) state
   const [isPressingLogo, setIsPressingLogo] = useState(false);
@@ -292,6 +315,15 @@ export default function Header({
 
   const handleAboutClose = () => {
     setAboutOpen(false);
+  };
+
+  const handleSettingsOpen = () => {
+    handleMenuClose();
+    setSettingsOpen(true);
+  };
+
+  const handleSettingsClose = () => {
+    setSettingsOpen(false);
   };
 
   const handleDeleteAllClick = () => {
@@ -718,9 +750,14 @@ export default function Header({
           }}
         >
           {/* Modern Date/Time Display - Hidden on very small screens */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
-            <DateTimeDisplay />
-          </Box>
+          {(dateTimeSettings.settings.showDate || dateTimeSettings.settings.showTime) && (
+            <Box sx={{ display: { xs: 'none', md: 'flex' } }}>
+              <DateTimeDisplay 
+                showDate={dateTimeSettings.settings.showDate} 
+                showTime={dateTimeSettings.settings.showTime} 
+              />
+            </Box>
+          )}
 
           {/* Actions Menu - Replaces individual icon buttons */}
           <Tooltip title="More actions" arrow>
@@ -942,6 +979,32 @@ export default function Header({
 
             <Divider sx={{ my: 1, mx: 1.5, borderColor: 'divider' }} />
 
+            {/* Settings Option */}
+            <MenuItem 
+              onClick={handleSettingsOpen}
+              sx={{
+                py: 1.25,
+                px: 2,
+                borderRadius: 1,
+                mx: 1,
+                transition: 'all 0.15s ease',
+                '&:hover': {
+                  bgcolor: isDark ? 'rgba(131, 165, 152, 0.12)' : 'rgba(37, 99, 235, 0.08)',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: 'text.secondary' }}>
+                <SettingsIcon sx={{ fontSize: 20 }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Settings" 
+                primaryTypographyProps={{
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                }}
+              />
+            </MenuItem>
+
             {/* About Option */}
             <MenuItem 
               onClick={handleAboutOpen}
@@ -1146,6 +1209,22 @@ export default function Header({
               </Box>
             </DialogContent>
           </Dialog>
+
+          {/* Settings Dialog */}
+          <SettingsDialog
+            open={settingsOpen}
+            onClose={handleSettingsClose}
+            faviconSettings={faviconSettings.settings}
+            toggleFaviconEnabled={faviconSettings.toggleEnabled}
+            toggleSource={faviconSettings.toggleSource}
+            moveSourceUp={faviconSettings.moveSourceUp}
+            moveSourceDown={faviconSettings.moveSourceDown}
+            resetFaviconDefaults={faviconSettings.resetToDefaults}
+            dateTimeSettings={dateTimeSettings.settings}
+            toggleShowDate={dateTimeSettings.toggleShowDate}
+            toggleShowTime={dateTimeSettings.toggleShowTime}
+            resetDateTimeDefaults={dateTimeSettings.resetToDefaults}
+          />
 
           {/* Delete All QuickMarks Dialog */}
           <Dialog

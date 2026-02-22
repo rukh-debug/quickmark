@@ -1,3 +1,5 @@
+import { FaviconSourceType } from '../types/faviconSettings';
+
 export function getDomain(url: string): string {
   try {
     const urlObj = new URL(url);
@@ -42,23 +44,56 @@ function isGoogleDefaultFavicon(img: HTMLImageElement): boolean {
   return img.naturalWidth === 16 && img.naturalHeight === 16;
 }
 
-export async function findWorkingFavicon(url: string): Promise<string | null> {
+function getFaviconUrlForSource(url: string, source: FaviconSourceType): string | null {
   try {
     const urlObj = new URL(url);
     const hostname = urlObj.hostname;
     const origin = urlObj.origin;
 
-    const directUrl = `${origin}/favicon.ico`;
-    const googleUrl = `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
-
-    const directImg = await preloadImage(directUrl);
-    if (directImg) {
-      return directUrl;
+    switch (source) {
+      case 'direct':
+        return `${origin}/favicon.ico`;
+      case 'google':
+        return `https://www.google.com/s2/favicons?domain=${hostname}&sz=128`;
+      case 'duckduckgo':
+        return `https://icons.duckduckgo.com/ip3/${hostname}.ico`;
+      default:
+        return null;
     }
+  } catch {
+    return null;
+  }
+}
 
-    const googleImg = await preloadImage(googleUrl);
-    if (googleImg && !isGoogleDefaultFavicon(googleImg)) {
-      return googleUrl;
+export interface FaviconFinderOptions {
+  sources: FaviconSourceType[];
+}
+
+export async function findWorkingFavicon(
+  url: string,
+  options?: FaviconFinderOptions
+): Promise<string | null> {
+  const sources = options?.sources ?? ['direct', 'google', 'duckduckgo'];
+
+  if (sources.length === 0) {
+    return null;
+  }
+
+  try {
+    // Try each source in order
+    for (const source of sources) {
+      const faviconUrl = getFaviconUrlForSource(url, source);
+      if (!faviconUrl) continue;
+
+      const img = await preloadImage(faviconUrl);
+      if (!img) continue;
+
+      // For Google, check if it's the default 16x16 favicon (which means no favicon found)
+      if (source === 'google' && isGoogleDefaultFavicon(img)) {
+        continue;
+      }
+
+      return faviconUrl;
     }
 
     return null;

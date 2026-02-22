@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material';
 import { QuickMark } from '../types/quickmark';
 import { findWorkingFavicon, getDomain, getFallbackEmoji } from '../utils/favicon';
+import { FaviconSourceType } from '../types/faviconSettings';
 import { quickMarkColors } from '../theme/gruvbox';
 
 interface QuickMarkCardProps {
@@ -33,11 +34,12 @@ interface QuickMarkCardProps {
   onEdit: (quickMark: QuickMark) => void;
   onDelete: (id: string) => void;
   onTogglePin: (id: string) => void;
+  enabledFaviconSources?: FaviconSourceType[];
 }
 
 const HOLD_DURATION = 1000; // 1 second hold to delete
 
-export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin }: QuickMarkCardProps) {
+export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin, enabledFaviconSources }: QuickMarkCardProps) {
   const [faviconError, setFaviconError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
@@ -49,7 +51,9 @@ export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin
     setFaviconUrl(null);
 
     const tryFaviconSources = async () => {
-      const workingFavicon = await findWorkingFavicon(quickMark.url);
+      const workingFavicon = await findWorkingFavicon(quickMark.url, {
+        sources: enabledFaviconSources ?? ['direct', 'google', 'duckduckgo'],
+      });
       if (workingFavicon) {
         setFaviconUrl(workingFavicon);
       } else {
@@ -58,7 +62,7 @@ export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin
     };
 
     tryFaviconSources();
-  }, [quickMark.url]);
+  }, [quickMark.url, enabledFaviconSources]);
   const [isHovered, setIsHovered] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isPressing, setIsPressing] = useState(false);

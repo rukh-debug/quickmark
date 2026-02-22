@@ -28,6 +28,7 @@ import ImportExportDialog from './app/components/ImportExportDialog';
 import SnowEffect from './app/components/effects/SnowEffect';
 import { useQuickMarks } from './app/hooks/useQuickMarks';
 import { useSnow } from './app/hooks/useSnow';
+import { useFaviconSettings } from './app/hooks/useFaviconSettings';
 import { QuickMark, QuickMarkFormData } from './app/types/quickmark';
 
 
@@ -48,6 +49,7 @@ function App() {
   } = useQuickMarks();
 
   const { isSnowing, toggleSnow } = useSnow();
+  const { getEnabledSources, isLoaded: settingsLoaded } = useFaviconSettings();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [formOpen, setFormOpen] = useState(false);
@@ -115,9 +117,11 @@ function App() {
     setSearchQuery('');
   };
 
-  if (!isLoaded) {
+  if (!isLoaded || !settingsLoaded) {
     return null;
   }
+
+  const enabledFaviconSources = getEnabledSources();
 
   const hasFilters = !!searchQuery;
   const totalCount = filteredQuickMarks.length;
@@ -196,6 +200,7 @@ function App() {
                       onEdit={handleEditClick}
                       onDelete={deleteQuickMark}
                       onTogglePin={togglePin}
+                      enabledFaviconSources={enabledFaviconSources}
                     />
                   </Grid>
                 </Zoom>
@@ -241,6 +246,7 @@ function App() {
                       onEdit={handleEditClick}
                       onDelete={deleteQuickMark}
                       onTogglePin={togglePin}
+                      enabledFaviconSources={enabledFaviconSources}
                     />
                   </Grid>
                 </Zoom>

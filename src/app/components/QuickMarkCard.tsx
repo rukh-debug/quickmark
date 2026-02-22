@@ -25,7 +25,7 @@ import {
   Warning as WarningIcon,
 } from '@mui/icons-material';
 import { QuickMark } from '../types/quickmark';
-import { getFaviconUrls, getDomain, getFallbackEmoji, preloadImage, isDefaultFavicon } from '../utils/favicon';
+import { findWorkingFavicon, getDomain, getFallbackEmoji } from '../utils/favicon';
 import { quickMarkColors } from '../theme/gruvbox';
 
 interface QuickMarkCardProps {
@@ -49,22 +49,12 @@ export default function QuickMarkCard({ quickMark, onEdit, onDelete, onTogglePin
     setFaviconUrl(null);
 
     const tryFaviconSources = async () => {
-      const sources = getFaviconUrls(quickMark.url);
-      
-      for (const source of sources) {
-        const img = await preloadImage(source.url);
-        if (img) {
-          // Skip Google's default globe icon
-          if (isDefaultFavicon(img)) {
-            continue;
-          }
-          setFaviconUrl(source.url);
-          return;
-        }
+      const workingFavicon = await findWorkingFavicon(quickMark.url);
+      if (workingFavicon) {
+        setFaviconUrl(workingFavicon);
+      } else {
+        setFaviconError(true);
       }
-      
-      // If no working favicon found, mark as error
-      setFaviconError(true);
     };
 
     tryFaviconSources();

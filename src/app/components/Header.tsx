@@ -18,6 +18,9 @@ import {
   DialogContent,
   Link,
   Paper,
+  LinearProgress,
+  Button,
+  Backdrop,
 } from '@mui/material';
 import {
   Brightness4 as DarkIcon,
@@ -32,13 +35,16 @@ import {
   Info as InfoIcon,
   GitHub as GitHubIcon,
   Close as CloseIcon,
+  DeleteForever as DeleteAllIcon,
+  Warning as WarningIcon,
 } from '@mui/icons-material';
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useEffect, useState, useCallback } from 'react';
 
 interface HeaderProps {
   onAddClick: () => void;
   onExportClick: () => void;
   onImportClick: () => void;
+  onDeleteAllClick?: () => void;
   quickMarkCount?: number;
   searchValue: string;
   onSearchChange: (value: string) => void;
@@ -172,10 +178,13 @@ function DateTimeDisplay() {
   );
 }
 
+const DELETE_ALL_HOLD_DURATION = 3000; // 3 seconds to delete all
+
 export default function Header({ 
   onAddClick, 
   onExportClick, 
   onImportClick, 
+  onDeleteAllClick,
   quickMarkCount = 0,
   searchValue,
   onSearchChange,
@@ -196,6 +205,15 @@ export default function Header({
   
   // About dialog state
   const [aboutOpen, setAboutOpen] = useState(false);
+
+  // Delete all dialog state
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  const [isPressingDeleteAll, setIsPressingDeleteAll] = useState(false);
+  const [deleteAllProgress, setDeleteAllProgress] = useState(0);
+  
+  const deleteAllPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const deleteAllProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const deleteAllPressStartTimeRef = useRef<number>(0);
 
   // Keyboard shortcut: Cmd/Ctrl + K to focus search
   useEffect(() => {
@@ -260,6 +278,66 @@ export default function Header({
   const handleAboutClose = () => {
     setAboutOpen(false);
   };
+
+  const handleDeleteAllClick = () => {
+    handleMenuClose();
+    setDeleteAllOpen(true);
+  };
+
+  const handleDeleteAllConfirm = useCallback(() => {
+    onDeleteAllClick?.();
+    setDeleteAllOpen(false);
+    setIsPressingDeleteAll(false);
+    setDeleteAllProgress(0);
+  }, [onDeleteAllClick]);
+
+  const handleCancelDeleteAll = () => {
+    setDeleteAllOpen(false);
+    setIsPressingDeleteAll(false);
+    setDeleteAllProgress(0);
+    cancelDeleteAllPress();
+  };
+
+  const startDeleteAllPress = useCallback((event: React.MouseEvent | React.TouchEvent) => {
+    event.preventDefault();
+    
+    setIsPressingDeleteAll(true);
+    deleteAllPressStartTimeRef.current = Date.now();
+    setDeleteAllProgress(0);
+
+    // Start progress animation
+    const updateInterval = 16; // ~60fps
+    deleteAllProgressIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - deleteAllPressStartTimeRef.current;
+      const newProgress = Math.min((elapsed / DELETE_ALL_HOLD_DURATION) * 100, 100);
+      setDeleteAllProgress(newProgress);
+    }, updateInterval);
+
+    // Set timer for actual deletion
+    deleteAllPressTimerRef.current = setTimeout(() => {
+      if (deleteAllProgressIntervalRef.current) {
+        clearInterval(deleteAllProgressIntervalRef.current);
+      }
+      handleDeleteAllConfirm();
+    }, DELETE_ALL_HOLD_DURATION);
+  }, [handleDeleteAllConfirm]);
+
+  const cancelDeleteAllPress = useCallback((event?: React.MouseEvent | React.TouchEvent) => {
+    if (event) {
+      event.preventDefault();
+    }
+    
+    if (deleteAllPressTimerRef.current) {
+      clearTimeout(deleteAllPressTimerRef.current);
+      deleteAllPressTimerRef.current = null;
+    }
+    if (deleteAllProgressIntervalRef.current) {
+      clearInterval(deleteAllProgressIntervalRef.current);
+      deleteAllProgressIntervalRef.current = null;
+    }
+    setIsPressingDeleteAll(false);
+    setDeleteAllProgress(0);
+  }, []);
 
   return (
     <AppBar
@@ -696,6 +774,40 @@ export default function Header({
 
             <Divider sx={{ my: 1, mx: 1.5, borderColor: 'divider' }} />
 
+            {/* Delete All Option */}
+            <MenuItem 
+              onClick={handleDeleteAllClick}
+              disabled={quickMarkCount === 0}
+              sx={{
+                py: 1.25,
+                px: 2,
+                borderRadius: 1,
+                mx: 1,
+                transition: 'all 0.15s ease',
+                color: 'error.main',
+                '&:hover': {
+                  bgcolor: 'error.lighter',
+                },
+                '&.Mui-disabled': {
+                  color: 'text.disabled',
+                  opacity: 0.5,
+                },
+              }}
+            >
+              <ListItemIcon sx={{ minWidth: 36, color: 'inherit' }}>
+                <DeleteAllIcon sx={{ fontSize: 20 }} />
+              </ListItemIcon>
+              <ListItemText 
+                primary="Delete all quickmarks"
+                primaryTypographyProps={{
+                  fontSize: '0.9375rem',
+                  fontWeight: 500,
+                }}
+              />
+            </MenuItem>
+
+            <Divider sx={{ my: 1, mx: 1.5, borderColor: 'divider' }} />
+
             {/* About Option */}
             <MenuItem 
               onClick={handleAboutOpen}
@@ -898,6 +1010,159 @@ export default function Header({
                   </Box>
                 </Paper>
               </Box>
+            </DialogContent>
+          </Dialog>
+
+          {/* Delete All QuickMarks Dialog */}
+          <Dialog
+            open={deleteAllOpen}
+            onClose={handleCancelDeleteAll}
+            BackdropComponent={Backdrop}
+            BackdropProps={{
+              timeout: 300,
+            }}
+            PaperProps={{
+              elevation: 0,
+              sx: {
+                borderRadius: 3,
+                maxWidth: 400,
+                width: '90%',
+                overflow: 'hidden',
+              },
+            }}
+          >
+            {/* Progress Bar at Top */}
+            <LinearProgress
+              variant="determinate"
+              value={deleteAllProgress}
+              sx={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 3,
+                bgcolor: 'transparent',
+                '& .MuiLinearProgress-bar': {
+                  bgcolor: 'error.main',
+                  transition: 'none',
+                },
+              }}
+            />
+
+            <DialogContent sx={{ textAlign: 'center', pt: 4, pb: 3, px: 3 }}>
+              <Box
+                sx={{
+                  width: 64,
+                  height: 64,
+                  borderRadius: '50%',
+                  bgcolor: 'error.lighter',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mx: 'auto',
+                  mb: 2,
+                }}
+              >
+                <WarningIcon sx={{ fontSize: 32, color: 'error.main' }} />
+              </Box>
+
+              <Typography
+                variant="h6"
+                sx={{
+                  fontWeight: 600,
+                  color: 'text.primary',
+                  mb: 1,
+                }}
+              >
+                Delete all quickmarks?
+              </Typography>
+
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ mb: 3, fontSize: '0.9rem' }}
+              >
+                Are you sure you want to delete all {quickMarkCount} quickmarks?
+                This action cannot be undone.
+              </Typography>
+
+              {/* Hold to Delete All Button */}
+              <Button
+                fullWidth
+                variant="contained"
+                color="error"
+                disableElevation
+                onMouseDown={startDeleteAllPress}
+                onMouseUp={cancelDeleteAllPress}
+                onMouseLeave={() => {
+                  if (isPressingDeleteAll) cancelDeleteAllPress();
+                }}
+                onTouchStart={startDeleteAllPress}
+                onTouchEnd={cancelDeleteAllPress}
+                sx={{
+                  py: 1.5,
+                  borderRadius: 2,
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  textTransform: 'none',
+                  position: 'relative',
+                  overflow: 'hidden',
+                  bgcolor: isPressingDeleteAll ? 'error.dark' : 'error.main',
+                  transition: 'all 0.15s ease',
+                  '&:hover': {
+                    bgcolor: 'error.dark',
+                  },
+                }}
+              >
+                {/* Fill Animation */}
+                <Box
+                  sx={{
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    height: '100%',
+                    bgcolor: 'error.dark',
+                    transform: `scaleX(${deleteAllProgress / 100})`,
+                    transformOrigin: 'left',
+                    transition: 'transform 0.05s linear',
+                    zIndex: 0,
+                  }}
+                />
+                
+                <Box
+                  sx={{
+                    position: 'relative',
+                    zIndex: 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 1,
+                  }}
+                >
+                  <DeleteAllIcon sx={{ fontSize: 20 }} />
+                  {isPressingDeleteAll ? 'Deleting all...' : 'Hold for 3s to delete all'}
+                </Box>
+              </Button>
+
+              {/* Cancel Button */}
+              <Button
+                fullWidth
+                variant="text"
+                onClick={handleCancelDeleteAll}
+                sx={{
+                  mt: 1.5,
+                  py: 1,
+                  fontSize: '0.85rem',
+                  color: 'text.secondary',
+                  textTransform: 'none',
+                  '&:hover': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                Cancel
+              </Button>
             </DialogContent>
           </Dialog>
         </Box>

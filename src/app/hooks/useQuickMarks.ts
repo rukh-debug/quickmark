@@ -115,6 +115,10 @@ export function useQuickMarks() {
     setQuickMarks((prev) => prev.filter((qm) => qm.id !== id));
   }, []);
 
+  const deleteAllQuickMarks = useCallback(() => {
+    setQuickMarks([]);
+  }, []);
+
   const togglePin = useCallback((id: string) => {
     setQuickMarks((prev) =>
       prev.map((qm) =>
@@ -193,6 +197,7 @@ export function useQuickMarks() {
     addQuickMark,
     updateQuickMark,
     deleteQuickMark,
+    deleteAllQuickMarks,
     togglePin,
     reorderQuickMarks,
     exportQuickMarks,

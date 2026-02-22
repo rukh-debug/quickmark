@@ -39,6 +39,7 @@ function App() {
     addQuickMark,
     updateQuickMark,
     deleteQuickMark,
+    deleteAllQuickMarks,
     togglePin,
     exportQuickMarks,
     importQuickMarks,
@@ -124,6 +125,7 @@ function App() {
         onAddClick={handleAddClick}
         onExportClick={handleExportClick}
         onImportClick={handleImportClick}
+        onDeleteAllClick={deleteAllQuickMarks}
         quickMarkCount={quickMarks.length}
         searchValue={searchQuery}
         onSearchChange={setSearchQuery}

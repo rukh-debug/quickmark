@@ -43,13 +43,13 @@ export function getInitials(url: string): string {
 export function getFallbackEmoji(url: string, title: string): string {
   const text = (url + title).toLowerCase();
   if (text.includes('chime')) return '💬';
-  if (text.includes('print') || text.includes('barcode')) return '🏷️';
+  if (text.includes('print') || text.includes('barcode')) return '🖨️';
   if (text.includes('graph') || text.includes('monitor') || text.includes('score')) return '📊';
   if (text.includes('schedule') || text.includes('time') || text.includes('roster')) return '📅';
   if (text.includes('alert') || text.includes('lightning')) return '⚡';
   if (text.includes('local') || text.includes('file')) return '📁';
   if (text.includes('dock') || text.includes('yard')) return '🚚';
   if (text.includes('wiki') || text.includes('quip')) return '📝';
-  if (text.includes('amazon') || text.includes('aws')) return '📦';
+  if (text.includes('amazon')) return '📦';
   return '🔗'; // Default
 }

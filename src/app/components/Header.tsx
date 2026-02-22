@@ -215,10 +215,10 @@ export default function Header({
   const deleteAllProgressIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const deleteAllPressStartTimeRef = useRef<number>(0);
 
-  // Keyboard shortcut: Cmd/Ctrl + K to focus search
+  // Keyboard shortcut: Cmd/Ctrl + K or Ctrl + F to focus search
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === 'f')) {
         e.preventDefault();
         searchInputRef.current?.focus();
       }
@@ -524,7 +524,7 @@ export default function Header({
                     userSelect: 'none',
                   }}
                 >
-                  ⌘K
+                  CTRL + F
                 </Box>
               )}
 

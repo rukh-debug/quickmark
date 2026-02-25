@@ -17,7 +17,7 @@ export const DEFAULT_FAVICON_SETTINGS: FaviconSettings = {
   sources: [
     {
       type: 'google',
-      enabled: true,
+      enabled: false,
       label: 'Google Favicon Service',
       description: "Use Google's favicon fetching service",
     },
